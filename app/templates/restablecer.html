@@ -1,0 +1,20 @@
+{% extends "base_auth.html" %}
+{% from "_macros.html" import csrf %}
+{% block titulo %}Nueva contraseña{% endblock %}
+{% block contenido %}
+<h1>Crea tu nueva contraseña</h1>
+<form method="post" action="{{ url_for('auth.restablecer', token=token) }}" class="contenedor">
+  {{ csrf() }}
+  <div>
+    <label class="campo" for="password">Nueva contraseña</label>
+    <input id="password" name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="128" autofocus>
+    <small>Mínimo 12 caracteres. Una frase larga funciona mejor que símbolos sueltos.</small>
+  </div>
+  <div>
+    <label class="campo" for="confirmar">Repite la contraseña</label>
+    <input id="confirmar" name="confirmar" type="password" autocomplete="new-password" required maxlength="128">
+  </div>
+  <button class="btn primario">Guardar contraseña</button>
+</form>
+<p class="pie">Al guardar se cerrarán todas tus sesiones abiertas. Si tu rol usa verificación en dos pasos, seguirá siendo necesaria para entrar.</p>
+{% endblock %}

@@ -1,0 +1,12 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.idea/
+.pytest_cache/
+
+admin_clave.txt
+acceso.txt
+
+# Claude Code (ajustes personales)
+.claude/settings.local.json

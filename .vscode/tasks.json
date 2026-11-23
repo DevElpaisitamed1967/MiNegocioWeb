@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Instalar dependencias",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe -m pip install -r requirements.txt",
+      "problemMatcher": []
+    },
+    {
+      "label": "Crear base de datos",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe init_db.py",
+      "problemMatcher": []
+    },
+    {
+      "label": "Ejecutar servidor",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe run.py",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Ejecutar pruebas",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/Scripts/python.exe -m pytest tests",
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}

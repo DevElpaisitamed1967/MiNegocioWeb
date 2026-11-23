@@ -1,0 +1,20 @@
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
+
+{% macro mensajes() %}
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for categoria, texto in msgs %}
+      <div class="aviso {{ categoria }}" role="alert">{{ texto }}</div>
+    {% endfor %}
+  {% endwith %}
+{% endmacro %}
+
+{# Selector de tema. Se importa "with context" para leer `tema` y `request`. #}
+{% macro selector_tema() %}
+<form method="post" action="{{ url_for('tema.cambiar') }}" class="tema" role="group" aria-label="Tema de la interfaz">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="volver" value="{{ request.full_path.rstrip('?') }}">
+  {% for valor, etiqueta in (('system', 'Sistema'), ('light', 'Claro'), ('dark', 'Oscuro')) %}
+    <button name="tema" value="{{ valor }}" aria-pressed="{{ 'true' if tema == valor else 'false' }}">{{ etiqueta }}</button>
+  {% endfor %}
+</form>
+{% endmacro %}

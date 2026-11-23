@@ -1,0 +1,17 @@
+{% extends "base_auth.html" %}
+{% from "_macros.html" import csrf %}
+{% block titulo %}Verificación en dos pasos{% endblock %}
+{% block contenido %}
+<h1>Verificación en dos pasos</h1>
+<p>Ingresando como <strong>{{ rol }}</strong>. Abre tu app autenticadora y escribe el código de 6 dígitos.</p>
+<form method="post" action="{{ url_for('auth.verificar_2fa') }}" class="contenedor">
+  {{ csrf() }}
+  <div>
+    <label class="campo" for="codigo">Código</label>
+    <input id="codigo" name="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="16" required autofocus>
+    <small>¿Perdiste el acceso a la app? Usa uno de tus códigos de respaldo (formato <code>xxxxx-xxxxx</code>).</small>
+  </div>
+  <button class="btn primario">Verificar</button>
+</form>
+<p class="pie">El código cambia cada 30 segundos. <a href="{{ url_for('auth.login') }}">Volver al inicio de sesión</a></p>
+{% endblock %}

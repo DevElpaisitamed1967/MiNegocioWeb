@@ -1,0 +1,10 @@
+{% extends "base_auth.html" %}
+{% block titulo %}Códigos de respaldo{% endblock %}
+{% block contenido %}
+<h1>Guarda tus códigos de respaldo</h1>
+<p>Cada código sirve <strong>una sola vez</strong> si pierdes tu teléfono. Esta es la única vez que se muestran.</p>
+<ul class="codigos">
+  {% for c in codigos %}<li><code>{{ c }}</code></li>{% endfor %}
+</ul>
+<a class="btn primario" href="{{ destino }}">Ya los guardé, continuar</a>
+{% endblock %}

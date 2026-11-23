@@ -1,0 +1,28 @@
+{% extends "base_auth.html" %}
+{% from "_macros.html" import csrf %}
+{% block titulo %}Activar verificación en dos pasos{% endblock %}
+{% block contenido %}
+<h1>Activa la verificación en dos pasos</h1>
+<p>El rol <strong>{{ rol }}</strong> la exige. Es un paso único y toma un minuto.</p>
+<ol class="pasos">
+  <li>Abre Google Authenticator, Microsoft Authenticator, Authy o similar.</li>
+  <li>Escanea este código QR:
+    <div class="qr" aria-label="Código QR">{{ qr|safe }}</div>
+    <small>¿No puedes escanearlo? Escribe esta clave en tu app: <code>{{ secreto }}</code></small>
+  </li>
+  <li>Escribe el código de la app y el que te enviamos por correo.</li>
+</ol>
+<form method="post" action="{{ url_for('auth.configurar_2fa') }}" class="contenedor">
+  {{ csrf() }}
+  <div>
+    <label class="campo" for="codigo">Código de la app</label>
+    <input id="codigo" name="codigo" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,7}" maxlength="7" placeholder="6 dígitos" required autofocus>
+  </div>
+  <div>
+    <label class="campo" for="codigo_correo">Código recibido por correo</label>
+    <input id="codigo_correo" name="codigo_correo" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6 dígitos" required>
+  </div>
+  <button class="btn primario">Activar y entrar</button>
+</form>
+<p class="pie"><a href="{{ url_for('auth.login') }}">Cancelar</a></p>
+{% endblock %}

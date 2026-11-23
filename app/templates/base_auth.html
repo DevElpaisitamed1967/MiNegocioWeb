@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es" data-tema="{{ tema }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>{% block titulo %}{% endblock %} · MiNegocioWeb</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body class="auth">
+  {% from "_macros.html" import mensajes, selector_tema with context %}
+  <div class="dividido">
+    <aside class="panel-marca">
+      <div class="logo">MiNegocioWeb</div>
+      <div>
+        <h2>Tu negocio, con la puerta bien cerrada.</h2>
+        <ul class="puntos">
+          <li><b>01</b><span>Cada persona entra con el rol que le corresponde.</span></li>
+          <li><b>02</b><span>Verificación en dos pasos para Administrador, Asistente y Colaborador.</span></li>
+          <li><b>03</b><span>Las sesiones inactivas se cierran solas.</span></li>
+        </ul>
+      </div>
+      <small>© MiNegocioWeb</small>
+    </aside>
+    <main class="formulario">
+      {{ selector_tema() }}
+      <div class="contenedor">
+        {{ mensajes() }}
+        {% block contenido %}{% endblock %}
+      </div>
+    </main>
+  </div>
+</body>
+</html>

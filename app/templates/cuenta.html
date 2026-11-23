@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block titulo %}Mi cuenta{% endblock %}
+{% block contenido %}
+{% from "_macros.html" import csrf %}
+<h1>Mi cuenta</h1>
+
+<section class="caja">
+  <h2>Perfil</h2>
+  <p><strong>{{ u.nombre }}</strong> · {{ u.email }}<br>Rol de esta sesión: <strong>{{ usuario.rol }}</strong></p>
+</section>
+
+<section class="caja">
+  <h2>Cambiar contraseña</h2>
+  {% if tiene_clave %}
+  <form method="post" action="{{ url_for('cuenta.cambiar_password') }}">
+    {{ csrf() }}
+    <div>
+      <label class="campo" for="actual">Contraseña actual</label>
+      <input id="actual" name="actual" type="password" autocomplete="current-password" required maxlength="128">
+    </div>
+    <div>
+      <label class="campo" for="nueva">Nueva contraseña</label>
+      <input id="nueva" name="nueva" type="password" autocomplete="new-password" required minlength="12" maxlength="128">
+      <small>Mínimo 12 caracteres.</small>
+    </div>
+    <div>
+      <label class="campo" for="confirmar">Repite la nueva contraseña</label>
+      <input id="confirmar" name="confirmar" type="password" autocomplete="new-password" required maxlength="128">
+    </div>
+    <button class="btn primario">Guardar contraseña</button>
+  </form>
+  <p style="margin-top:.75rem">Al guardar se cerrarán tus otras sesiones abiertas.</p>
+  {% else %}
+  <p>Tu cuenta entra con Google o Microsoft y no tiene contraseña. Si quieres crear una, usa
+    <a href="{{ url_for('auth.recuperar') }}">«¿Olvidaste tu contraseña?»</a> (cerrando sesión antes).</p>
+  {% endif %}
+</section>
+
+<section class="caja">
+  <h2>Verificación en dos pasos</h2>
+  {% if codigos %}
+    <div class="aviso ok" role="status">Códigos nuevos generados. Guárdalos ahora: no se volverán a mostrar y los anteriores ya no sirven.</div>
+    <ul class="codigos">{% for c in codigos %}<li><code>{{ c }}</code></li>{% endfor %}</ul>
+  {% endif %}
+  {% if u.totp_confirmado %}
+    <p>Activa. Te quedan <strong>{{ restantes }}</strong> código(s) de respaldo sin usar.</p>
+    <form method="post" action="{{ url_for('cuenta.regenerar_codigos') }}">
+      {{ csrf() }}
+      <div>
+        <label class="campo" for="codigo">Código actual de tu app autenticadora</label>
+        <input id="codigo" name="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="6 dígitos" required>
+        <small>Generar códigos nuevos anula los anteriores.</small>
+      </div>
+      <button class="btn">Generar códigos de respaldo nuevos</button>
+    </form>
+  {% else %}
+    <p>No es obligatoria para el rol {{ usuario.rol }}. Se activa la primera vez que entres con un rol que la exija.</p>
+  {% endif %}
+</section>
+{% endblock %}

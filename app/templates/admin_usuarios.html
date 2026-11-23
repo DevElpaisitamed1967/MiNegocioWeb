@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block titulo %}Usuarios{% endblock %}
+{% block contenido %}
+{% from "_macros.html" import csrf %}
+<h1>Usuarios y roles</h1>
+<table class="tabla">
+  <thead><tr><th>Nombre</th><th>Correo</th><th>Estado</th><th>Roles</th></tr></thead>
+  <tbody>
+  {% for f in filas %}
+    <tr>
+      <td>{{ f.nombre }}</td>
+      <td>{{ f.email }}</td>
+      <td>
+        {{ 'Verificado' if f.email_verificado else 'Sin verificar' }}
+        {% if f.totp_confirmado %}· 2FA{% endif %}
+      </td>
+      <td>
+        <form method="post" action="{{ url_for('admin.asignar_roles', usuario_id=f.id) }}" class="roles">
+          {{ csrf() }}
+          {% for r in roles %}
+            <label class="check"><input type="checkbox" name="roles" value="{{ r.id }}" {% if r.id in f.rol_ids %}checked{% endif %}> {{ r.nombre }}</label>
+          {% endfor %}
+          <button class="btn pequeno">Guardar</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

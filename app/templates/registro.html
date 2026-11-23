@@ -1,0 +1,29 @@
+{% extends "base_auth.html" %}
+{% from "_macros.html" import csrf %}
+{% block titulo %}Crear cuenta{% endblock %}
+{% block contenido %}
+<h1>Crea tu cuenta</h1>
+<form method="post" action="{{ url_for('auth.registro') }}" class="contenedor">
+  {{ csrf() }}
+  <div>
+    <label class="campo" for="nombre">Nombre</label>
+    <input id="nombre" name="nombre" autocomplete="name" value="{{ nombre }}" required maxlength="100">
+  </div>
+  <div>
+    <label class="campo" for="email">Correo</label>
+    <input id="email" name="email" type="email" autocomplete="email" value="{{ email }}" required maxlength="254">
+  </div>
+  <div>
+    <label class="campo" for="password">Contraseña</label>
+    <input id="password" name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="128">
+    <small>Mínimo 12 caracteres. Una frase larga funciona mejor que símbolos sueltos.</small>
+  </div>
+  <div>
+    <label class="campo" for="confirmar">Repite la contraseña</label>
+    <input id="confirmar" name="confirmar" type="password" autocomplete="new-password" required maxlength="128">
+  </div>
+  <button class="btn primario">Crear cuenta</button>
+</form>
+<p class="pie">Las cuentas nuevas inician con el rol <strong>Consultor</strong>. Un administrador puede asignarte otros roles.</p>
+<p class="pie">¿Ya tienes cuenta? <a href="{{ url_for('auth.login') }}">Inicia sesión</a></p>
+{% endblock %}

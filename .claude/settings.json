@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "language": "spanish",
+  "permissions": {
+    "allow": [
+      "Bash(.venv/Scripts/python.exe -m pytest tests -q)",
+      "PowerShell(.venv/Scripts/python.exe -m pytest tests -q)",
+      "Bash(.venv/Scripts/python.exe check_db.py)",
+      "PowerShell(.venv/Scripts/python.exe check_db.py)"
+    ],
+    "ask": [
+      "Bash(*init_db.py*)",
+      "PowerShell(*init_db.py*)",
+      "Bash(*manage.py*)",
+      "PowerShell(*manage.py*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./acceso.txt)",
+      "Read(./admin_clave.txt)",
+      "Edit(./.env)",
+      "Edit(./acceso.txt)",
+      "Edit(./admin_clave.txt)"
+    ]
+  }
+}

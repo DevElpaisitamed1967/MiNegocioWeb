@@ -1,0 +1,7 @@
+{% extends "base_auth.html" %}
+{% block titulo %}Error {{ codigo }}{% endblock %}
+{% block contenido %}
+<h1>{{ codigo }}</h1>
+<p>{{ mensaje }}</p>
+<a class="btn" href="{{ url_for('panel.panel') }}">Ir al inicio</a>
+{% endblock %}

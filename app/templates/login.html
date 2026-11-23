@@ -1,0 +1,46 @@
+{% extends "base_auth.html" %}
+{% from "_macros.html" import csrf %}
+{% block titulo %}Iniciar sesión{% endblock %}
+{% block contenido %}
+<h1>Te damos la bienvenida</h1>
+<form method="post" action="{{ url_for('auth.login') }}" class="contenedor">
+  {{ csrf() }}
+
+  <fieldset class="roles">
+    <legend>Ingresar como</legend>
+    <div class="seg">
+      {% for r in roles %}
+        <label class="op">
+          <input type="radio" name="rol" value="{{ r.id }}" data-dos="{{ 1 if r.requiere_2fa else 0 }}"
+                 {% if (rol_sel and r.id == rol_sel) or (not rol_sel and loop.first) %}checked{% endif %} required>
+          <span>{{ r.nombre }}</span>
+        </label>
+      {% endfor %}
+    </div>
+    <p class="ayuda hint-dos">Este rol pedirá un código de tu app autenticadora.</p>
+    <p class="ayuda hint-simple">Este rol solo necesita tu contraseña.</p>
+  </fieldset>
+
+  <div>
+    <label class="campo" for="email">Correo</label>
+    <input id="email" name="email" type="email" autocomplete="username" value="{{ email }}" required maxlength="254">
+  </div>
+  <div>
+    <label class="campo" for="password">Contraseña</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="128">
+  </div>
+
+  <button class="btn primario">Ingresar</button>
+
+  {% if proveedores %}
+  <div class="separador"><span>o continúa con</span></div>
+  <div class="proveedores">
+    {% for p in proveedores %}
+      <button class="btn" formaction="{{ url_for('oauth.iniciar', proveedor=p.id) }}" formnovalidate>Continuar con {{ p.nombre }}</button>
+    {% endfor %}
+  </div>
+  {% endif %}
+</form>
+<p class="pie"><a href="{{ url_for('auth.recuperar') }}">¿Olvidaste tu contraseña?</a></p>
+<p class="pie">¿Primera vez? <a href="{{ url_for('auth.registro') }}">Crea tu cuenta</a></p>
+{% endblock %}

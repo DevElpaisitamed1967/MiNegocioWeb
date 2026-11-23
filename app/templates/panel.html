@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block titulo %}Panel{% endblock %}
+{% block contenido %}
+<h1>Hola, {{ usuario.nombre }}</h1>
+<p>Entraste con el rol <strong>{{ usuario.rol }}</strong>
+  {% if usuario.requiere_2fa %}(verificación en dos pasos completada){% endif %}.</p>
+{% endblock %}
