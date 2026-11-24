@@ -1,6 +1,7 @@
 """Comandos de administración.
 
     python manage.py crear-admin correo@dominio.com "Nombre Apellido"
+    python manage.py crear-usuario correo@dominio.com "Nombre Apellido" [--rol Consultor]
     python manage.py asignar-rol correo@dominio.com Asistente
     python manage.py generar-claves        (imprime SECRET_KEY y TOTP_CLAVE_CIFRADO para el .env)
 """
@@ -40,6 +41,35 @@ def crear_admin(args) -> int:
     return 0
 
 
+ROLES = ("Administrador", "Asistente", "Colaborador", "Consultor")
+
+
+def crear_usuario(args) -> int:
+    """Crea una cuenta con correo ya verificado y una contraseña aleatoria que nadie conoce.
+
+    La persona elige la suya desde «Recuperar contraseña» (/recuperar), que le envía un enlace
+    de un solo uso al correo. Así la contraseña nunca pasa por la terminal ni por un chat.
+    """
+    import re
+    from app.modelos import usuarios
+    from app.seguridad import passwords
+    email = args.email.strip().lower()
+    nombre = args.nombre.strip()[:100]
+    if not nombre or not re.match(r"^[^@\s]{1,64}@[^@\s]{1,255}\.[^@\s]{2,}$", email):
+        print("Nombre o correo no válidos.")
+        return 1
+    uid = usuarios.crear(nombre, email, passwords.hashear(secrets.token_urlsafe(32)),
+                         email_verificado=True, rol=args.rol)
+    if uid is None:
+        print("Ese correo ya está registrado.")
+        return 1
+    print(f"Usuario creado (id {uid}) con el rol {args.rol}.")
+    print("Para fijar su contraseña: abrir /recuperar, escribir su correo y usar el enlace que recibe.")
+    if args.rol != "Consultor":
+        print(f"El rol {args.rol} exige 2FA: se le pedirá configurarlo en su primer ingreso.")
+    return 0
+
+
 def asignar_rol(args) -> int:
     from app.database import cursor
     from app.modelos import usuarios
@@ -66,6 +96,11 @@ def main() -> int:
     a.add_argument("email")
     a.add_argument("nombre")
     a.set_defaults(func=crear_admin)
+    u = sub.add_parser("crear-usuario")
+    u.add_argument("email")
+    u.add_argument("nombre")
+    u.add_argument("--rol", choices=ROLES, default="Consultor")
+    u.set_defaults(func=crear_usuario)
     r = sub.add_parser("asignar-rol")
     r.add_argument("email")
     r.add_argument("rol")

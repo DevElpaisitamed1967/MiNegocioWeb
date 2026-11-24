@@ -58,7 +58,8 @@ python run.py                                        # http://localhost:5000
 
 Después solo falta `python manage.py crear-admin ...` y `python run.py`.
 
-En `ENTORNO=desarrollo` sin `SMTP_HOST`, los enlaces y códigos de correo salen por la consola.
+En `ENTORNO=desarrollo` sin `SMTP_HOST`, los enlaces y códigos de correo salen por la consola del
+servidor, y el código para activar el 2FA además se muestra en la propia página de activación.
 
 ## Cómo funciona
 

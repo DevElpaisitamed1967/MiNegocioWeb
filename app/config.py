@@ -3,7 +3,8 @@ import os
 
 from dotenv import load_dotenv
 
-load_dotenv()
+# override=True: el .env del proyecto manda sobre variables de Windows con el mismo nombre (p. ej. DB_USER).
+load_dotenv(override=True)
 
 # Tenant de Microsoft para cuentas personales (Outlook.com, Hotmail, Live)
 MS_TENANT_PERSONAL = "9188040d-6c67-4c5b-b112-36a304b66dad"

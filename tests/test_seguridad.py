@@ -279,3 +279,113 @@ def test_regenerar_codigos_con_totp_valido_muestra_los_nuevos(app, monkeypatch):
     monkeypatch.setattr("app.modelos.usuarios.guardar_codigos_respaldo", lambda uid, hs: guardados.append(hs))
     html = app.test_client().post("/cuenta/codigos", data={"codigo": "123456"}).get_data(as_text=True)
     assert "AAAA-1111" in html and guardados == [["hAAAA-1111", "hBBBB-2222"]]
+
+
+# --- Segundo factor: verificación y activación (códigos TOTP reales, sin MySQL) ------------
+
+def _preparar_2fa(monkeypatch, confirmado=True):
+    """Simula a un usuario en el paso intermedio del 2FA. Devuelve (secreto, llamadas, cliente_factory)."""
+    import time
+
+    import pyotp
+
+    from app.seguridad import totp
+
+    secreto = pyotp.random_base32()
+    usuario = {"id": 7, "nombre": "Ana", "email": "ana@ejemplo.com", "activo": 1,
+               "bloqueado_hasta": None, "totp_confirmado": int(confirmado),
+               "totp_secreto_cifrado": totp.cifrar(secreto), "totp_ultimo_paso": None}
+    llamadas = []
+    monkeypatch.setattr("app.modelos.usuarios.obtener", lambda uid: usuario)
+    monkeypatch.setattr("app.modelos.roles.obtener",
+                        lambda rid: {"id": 1, "nombre": "Administrador", "requiere_2fa": 1})
+    monkeypatch.setattr("app.seguridad.auditoria.registrar",
+                        lambda evento, ok, uid=None, email=None, detalle=None: llamadas.append((evento, ok, detalle)))
+    monkeypatch.setattr("app.seguridad.sesiones.crear", lambda uid, rid: llamadas.append(("sesion", uid, rid)))
+    monkeypatch.setattr("app.modelos.usuarios.limpiar_fallos", lambda uid: None)
+    monkeypatch.setattr("app.modelos.usuarios.registrar_login", lambda uid: None)
+    monkeypatch.setattr("app.modelos.usuarios.registrar_fallo", lambda uid: False)
+    monkeypatch.setattr("app.seguridad.correo.enviar", lambda *a: None)
+    # Ninguna prueba debe tocar MySQL: el código del correo se simula siempre.
+    monkeypatch.setattr("app.seguridad.tokens.crear_codigo", lambda uid, tipo, minutos: "000000")
+
+    def cliente(app):
+        c = app.test_client()
+        with c.session_transaction() as s:
+            s["pre2fa"] = {"uid": 7, "rid": 1, "metodo": "password",
+                           "ts": int(time.time()), "codigo_enviado": False}
+        return c
+    return secreto, llamadas, cliente
+
+
+def test_verificar_2fa_acepta_el_codigo_de_la_app_y_abre_sesion(app, monkeypatch):
+    import pyotp
+    secreto, llamadas, cliente = _preparar_2fa(monkeypatch)
+    monkeypatch.setattr("app.modelos.usuarios.consumir_paso_totp", lambda uid, paso: True)
+    resp = cliente(app).post("/2fa/verificar", data={"codigo": pyotp.TOTP(secreto).now()})
+    assert resp.status_code == 302 and resp.headers["Location"].endswith("/panel")
+    assert ("sesion", 7, 1) in llamadas
+
+
+def test_verificar_2fa_acepta_el_codigo_escrito_con_espacio(app, monkeypatch):
+    # Google/Microsoft Authenticator muestran el código como "123 456".
+    import pyotp
+    secreto, llamadas, cliente = _preparar_2fa(monkeypatch)
+    monkeypatch.setattr("app.modelos.usuarios.consumir_paso_totp", lambda uid, paso: True)
+    codigo = pyotp.TOTP(secreto).now()
+    resp = cliente(app).post("/2fa/verificar", data={"codigo": f"{codigo[:3]} {codigo[3:]}"})
+    assert resp.status_code == 302 and ("sesion", 7, 1) in llamadas
+
+
+def test_verificar_2fa_rechaza_un_codigo_ya_usado(app, monkeypatch):
+    import pyotp
+    secreto, llamadas, cliente = _preparar_2fa(monkeypatch)
+    monkeypatch.setattr("app.modelos.usuarios.consumir_paso_totp", lambda uid, paso: False)  # replay
+    monkeypatch.setattr("app.modelos.usuarios.consumir_codigo_respaldo", lambda uid, h: False)
+    resp = cliente(app).post("/2fa/verificar", data={"codigo": pyotp.TOTP(secreto).now()})
+    assert resp.status_code == 200 and "Código incorrecto" in resp.get_data(as_text=True)
+    assert not any(x[0] == "sesion" for x in llamadas)
+
+
+def test_activar_2fa_muestra_el_codigo_del_correo_si_no_hay_smtp(app, monkeypatch):
+    _, _, cliente = _preparar_2fa(monkeypatch, confirmado=False)
+    monkeypatch.setattr("app.config.Config.DESARROLLO", True)
+    monkeypatch.setattr("app.config.Config.SMTP_HOST", None)
+    monkeypatch.setattr("app.seguridad.tokens.crear_codigo", lambda uid, tipo, minutos: "654321")
+    c = cliente(app)
+    html = c.get("/2fa/configurar").get_data(as_text=True)
+    assert "654321" in html
+    # El código sigue visible al recargar la página (no se pierde tras el primer envío).
+    assert "654321" in c.get("/2fa/configurar").get_data(as_text=True)
+
+
+def test_activar_2fa_no_muestra_el_codigo_cuando_hay_smtp(app, monkeypatch):
+    _, _, cliente = _preparar_2fa(monkeypatch, confirmado=False)
+    monkeypatch.setattr("app.config.Config.SMTP_HOST", "smtp.ejemplo.com")
+    monkeypatch.setattr("app.seguridad.tokens.crear_codigo", lambda uid, tipo, minutos: "654321")
+    assert "654321" not in cliente(app).get("/2fa/configurar").get_data(as_text=True)
+
+
+def test_activar_2fa_completo_confirma_el_autenticador_y_abre_sesion(app, monkeypatch):
+    import pyotp
+    secreto, llamadas, cliente = _preparar_2fa(monkeypatch, confirmado=False)
+    confirmados = []
+    monkeypatch.setattr("app.seguridad.tokens.consumir_codigo", lambda uid, tipo, c: c == "654321")
+    monkeypatch.setattr("app.modelos.usuarios.confirmar_totp", lambda uid, paso: confirmados.append(paso) or True)
+    monkeypatch.setattr("app.modelos.usuarios.guardar_codigos_respaldo", lambda uid, hashes: None)
+    resp = cliente(app).post("/2fa/configurar",
+                             data={"codigo": pyotp.TOTP(secreto).now(), "codigo_correo": "654321"})
+    assert resp.status_code == 200 and len(confirmados) == 1
+    assert ("sesion", 7, 1) in llamadas and ("2fa_enrolado", True, None) in llamadas
+
+
+def test_activar_2fa_registra_cual_de_los_dos_codigos_fallo(app, monkeypatch):
+    import pyotp
+    secreto, llamadas, cliente = _preparar_2fa(monkeypatch, confirmado=False)
+    monkeypatch.setattr("app.seguridad.tokens.consumir_codigo", lambda uid, tipo, c: False)
+    c = cliente(app)
+    c.post("/2fa/configurar", data={"codigo": "000000", "codigo_correo": "111111"})
+    c.post("/2fa/configurar", data={"codigo": pyotp.TOTP(secreto).now(), "codigo_correo": "111111"})
+    detalles = [d for (e, ok, d) in llamadas if e == "2fa" and not ok]
+    assert detalles == ["enrolamiento: código de la app incorrecto",
+                        "enrolamiento: código del correo incorrecto o vencido"]

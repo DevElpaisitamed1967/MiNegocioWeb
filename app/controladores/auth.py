@@ -31,6 +31,13 @@ def _proveedores():
     return proveedores_activos()
 
 
+def _correo_en_pantalla() -> bool:
+    """True solo en desarrollo y sin SMTP: ahí el correo no sale a ningún sitio (solo se
+    imprime en la consola del servidor), así que el código se muestra en la propia página.
+    create_app() impide arrancar en producción sin SMTP, por lo que nunca se activa allí."""
+    return Config.DESARROLLO and not Config.SMTP_HOST
+
+
 # --- Registro ------------------------------------------------------------------
 
 @bp.route("/registro", methods=["GET", "POST"])
@@ -282,29 +289,39 @@ def configurar_2fa():
         codigo_correo = (request.form.get("codigo_correo") or "").strip()
         codigo_app = (request.form.get("codigo") or "").strip().replace(" ", "")
         paso = totp.verificar(secreto, codigo_app, None)
-        # Con `and` el código del correo solo se gasta si el de la app ya era correcto.
-        if (paso is not None
-                and tokens.consumir_codigo(usuario["id"], "enrolar_2fa", codigo_correo)
-                and usuarios.confirmar_totp(usuario["id"], paso)):
+        # El código del correo solo se gasta si el de la app ya era correcto. Al usuario siempre
+        # se le dice lo mismo ("Código incorrecto"), pero la bitácora distingue cuál falló.
+        if paso is None:
+            motivo = "enrolamiento: código de la app incorrecto"
+        elif not tokens.consumir_codigo(usuario["id"], "enrolar_2fa", codigo_correo):
+            motivo = "enrolamiento: código del correo incorrecto o vencido"
+        elif not usuarios.confirmar_totp(usuario["id"], paso):
+            motivo = "enrolamiento: el 2FA ya estaba confirmado"
+        else:
+            motivo = None
+        if motivo is None:
             codigos = totp.generar_codigos_respaldo()
             usuarios.guardar_codigos_respaldo(usuario["id"], [totp.hash_codigo(c) for c in codigos])
             auditoria.registrar("2fa_enrolado", True, usuario["id"], usuario["email"])
             destino = flujo.abrir_sesion(usuario, rol, pre["metodo"])
             return render_template("codigos_respaldo.html", codigos=codigos, destino=destino)
-        respuesta = _fallo_2fa(usuario, "enrolamiento: código incorrecto")
+        respuesta = _fallo_2fa(usuario, motivo)
         if respuesta:
             return respuesta
 
-    if not pre["codigo_enviado"]:
+    en_pantalla = _correo_en_pantalla()
+    if not pre["codigo_enviado"] or (en_pantalla and not pre.get("codigo_dev")):
         codigo = tokens.crear_codigo(usuario["id"], "enrolar_2fa", minutos=10)
         correo.enviar(usuario["email"], "Código para activar la verificación en dos pasos",
                       f"Tu código es {codigo}. Vence en 10 minutos.\n"
                       "Si no intentaste iniciar sesión, cambia tu contraseña.")
         pre["codigo_enviado"] = True
+        if en_pantalla:
+            pre["codigo_dev"] = codigo
         session["pre2fa"] = pre
     uri = totp.uri_aprovisionamiento(secreto, usuario["email"])
     return render_template("2fa_configurar.html", qr=totp.qr_svg(uri), secreto=secreto,
-                           rol=rol["nombre"])
+                           rol=rol["nombre"], codigo_dev=pre.get("codigo_dev") if en_pantalla else None)
 
 
 @bp.route("/2fa/verificar", methods=["GET", "POST"])

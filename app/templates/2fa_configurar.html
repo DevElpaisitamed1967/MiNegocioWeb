@@ -12,6 +12,9 @@
   </li>
   <li>Escribe el código de la app y el que te enviamos por correo.</li>
 </ol>
+{% if codigo_dev %}
+<div class="aviso ok" role="note">Modo desarrollo: no hay SMTP configurado, así que el correo no se envía. El código del correo es <strong>{{ codigo_dev }}</strong>.</div>
+{% endif %}
 <form method="post" action="{{ url_for('auth.configurar_2fa') }}" class="contenedor">
   {{ csrf() }}
   <div>
